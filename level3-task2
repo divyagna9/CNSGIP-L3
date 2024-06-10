@@ -1,0 +1,150 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+
+# Load dataset
+url = "https://www.kaggle.com/datasets/nehalbirla/vehicle-dataset-from-cardekho?select=car+data.csv"
+data = pd.read_csv(url)
+
+# Display the first few rows of the dataset
+print(data.head())
+print(data.info())
+print(data.describe())
+
+# Handle missing values if any
+print(data.isnull().sum())
+
+# Encoding categorical variables
+data = pd.get_dummies(data, drop_first=True)
+
+# Define features and target
+X = data.drop('price', axis=1)
+y = data['price']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale the features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Initialize models
+lin_reg = LinearRegression()
+tree_reg = DecisionTreeRegressor()
+rf_reg = RandomForestRegressor(n_estimators=100)
+
+# Train models
+lin_reg.fit(X_train, y_train)
+tree_reg.fit(X_train, y_train)
+rf_reg.fit(X_train, y_train)
+
+# Predictions
+y_pred_lin_reg = lin_reg.predict(X_test)
+y_pred_tree_reg = tree_reg.predict(X_test)
+y_pred_rf_reg = rf_reg.predict(X_test)
+
+# Evaluate models
+print("Linear Regression RMSE:", np.sqrt(mean_squared_error(y_test, y_pred_lin_reg)))
+print("Decision Tree RMSE:", np.sqrt(mean_squared_error(y_test, y_pred_tree_reg)))
+print("Random Forest RMSE:", np.sqrt(mean_squared_error(y_test, y_pred_rf_reg)))
+
+print("Linear Regression R2:", r2_score(y_test, y_pred_lin_reg))
+print("Decision Tree R2:", r2_score(y_test, y_pred_tree_reg))
+print("Random Forest R2:", r2_score(y_test, y_pred_rf_reg))
+
+# Plotting actual vs predicted for the best model
+best_model = rf_reg
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, y_pred_rf_reg, alpha=0.3)
+plt.xlabel("Actual Prices")
+plt.ylabel("Predicted Prices")
+plt.title("Actual vs Predicted Car Prices")
+plt.show()
+
+# Save the best model
+joblib.dump(best_model, 'car_price_model.pkl')
+
+# Save the scaler
+joblib.dump(scaler, 'scaler.pkl')
+
+# Load the saved model and scaler
+loaded_model = joblib.load('car_price_model.pkl')
+loaded_scaler = joblib.load('scaler.pkl')
+
+# Example new data
+new_data = pd.DataFrame({
+    'symboling': [3],
+    'normalized_losses': [115],
+    'wheel_base': [98.6],
+    'length': [169.7],
+    'width': [64.8],
+    'height': [56.2],
+    'curb_weight': [2414],
+    'engine_size': [90],
+    'bore': [2.68],
+    'stroke': [3.47],
+    'compression_ratio': [9.0],
+    'horsepower': [68],
+    'peak_rpm': [5500],
+    'city_mpg': [37],
+    'highway_mpg': [41],
+    'make_audi': [0],
+    'make_bmw': [0],
+    'make_chevrolet': [0],
+    'make_dodge': [0],
+    'make_honda': [1],  # example for 'honda' make
+    'fuel_type_diesel': [0],
+    'fuel_type_gas': [1],
+    'aspiration_std': [1],
+    'aspiration_turbo': [0],
+    'num_of_doors_four': [1],
+    'num_of_doors_two': [0],
+    'body_style_convertible': [0],
+    'body_style_hardtop': [0],
+    'body_style_hatchback': [0],
+    'body_style_sedan': [1],
+    'body_style_wagon': [0],
+    'drive_wheels_4wd': [0],
+    'drive_wheels_fwd': [1],
+    'drive_wheels_rwd': [0],
+    'engine_location_front': [1],
+    'engine_location_rear': [0],
+    'engine_type_dohc': [0],
+    'engine_type_dohcv': [0],
+    'engine_type_l': [0],
+    'engine_type_ohc': [1],
+    'engine_type_ohcf': [0],
+    'engine_type_ohcv': [0],
+    'engine_type_rotor': [0],
+    'num_of_cylinders_eight': [0],
+    'num_of_cylinders_five': [0],
+    'num_of_cylinders_four': [1],
+    'num_of_cylinders_six': [0],
+    'num_of_cylinders_three': [0],
+    'num_of_cylinders_twelve': [0],
+    'num_of_cylinders_two': [0],
+    'fuel_system_1bbl': [0],
+    'fuel_system_2bbl': [0],
+    'fuel_system_4bbl': [0],
+    'fuel_system_idi': [0],
+    'fuel_system_mfi': [0],
+    'fuel_system_mpfi': [1],
+    'fuel_system_spdi': [0],
+    'fuel_system_spfi': [0]
+})
+
+# Scale the new data
+new_data_scaled = loaded_scaler.transform(new_data)
+
+# Predict
+prediction = loaded_model.predict(new_data_scaled)
+print("Predicted Car Price:", prediction[0])
